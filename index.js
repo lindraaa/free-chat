@@ -18,14 +18,14 @@ app.get("/",(req,res)=>{
 
 
 io.on('connection',(socket)=>{
-    console.log("A new user connected")
+    // console.log("A new user connected")
     socket.broadcast.emit("user_connected", "A new user"); 
-    socket.on('chat_message',(data)=>{
-        console.log(`message: ${data}`)
+    socket.on('chat_message',({data,user})=>{
+        // console.log(`message: ${data} ${user}`)
         io.emit('chat_message',data)
     })
     socket.on('disconnect',()=>{
-        console.log("user was disconnected")
+        // console.log("user was disconnected")
         socket.broadcast.emit("user_disconnected","The user ")
     })
 })

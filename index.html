@@ -4,49 +4,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tach-messages</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      .message-container {
+        display: flex;
+        margin-bottom: 5px;
+      }
+      .self {
+        justify-content: flex-end;
+      }
+      .incoming {
+        justify-content: flex-start;
+      }
+      .message-bubble {
+        padding: 10px 15px;
+        border-radius: 15px;
+        max-width: 70%;
+        word-wrap: break-word;
+      }
+      .self .message-bubble {
+        background-color: #007bff;
+        color: white;
+      }
+      .incoming .message-bubble {
+        background-color: #6c757d;
+        color: white;
+      }
+    </style>
   </head>
   <body class="d-flex flex-column vh-100">
-      <h4 class="text-center bg-primary text-white py-3">Messages:</h4>
-      <ul id="messages" class="list-group flex-grow-1 overflow-auto pt-3" style="font-size: 20px; "></ul>
-      <form id="form" action="" class="d-flex p-3 bg-light border-top">
-        <input id="input" class="form-control me-2" placeholder="Type a message..." autocomplete="off" required />
-        <button class="btn btn-primary">Send</button>
-      </form>
+    <h4 class="text-center bg-primary text-white py-3">Messages:</h4>
+    <ul id="messages" class="list-unstyled flex-grow-1 overflow-auto pt-3 px-3"></ul>
+    <form id="form" class="d-flex p-3 bg-light border-top">
+      <input id="input" class="form-control me-2" placeholder="Type a message..." autocomplete="off" required />
+      <button class="btn btn-primary">Send</button>
+    </form>
+
     <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        const socket = io();
-        const form = document.getElementById("form");
-        const input = document.getElementById("input");
-        const messages = document.getElementById("messages")
-        form.addEventListener("submit",(e)=>{
-            e.preventDefault();
-            if (input.value.trim()) {
-                socket.emit("chat_message", input.value.trim());
-                input.value = "";
-            } 
-        });
-        
-        socket.on('chat_message',(msg)=>{
-            const item = document.createElement("li");
-            item.textContent = msg;
-            messages.appendChild(item);
-            window.scrollTo(0,document.body.scrollHeight);
-        });
-          socket.on("user_connected", (username) => {
-            const item = document.createElement("li");
-            item.textContent = username + " has joined the chat.";
-            item.style.color = "green"; 
-            messages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-        });
-        socket.on("user_disconnected", (username) => {
-            const item = document.createElement("li");
-            item.textContent = username + " was disconnected.";
-            item.style.color = "red";
-            messages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
-        });
+      const socket = io();
+      const form = document.getElementById("form");
+      const input = document.getElementById("input");
+      const messages = document.getElementById("messages");
+
+      // Prompt for username
+      const username = prompt("Enter your name:");
+      socket.emit("set_username", username);
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (input.value.trim()) {
+          const messageData = { user: username, message: input.value.trim() };
+          appendMessage(messageData, true); // Show sent message instantly
+          socket.emit("chat_message", messageData); // Send message to server
+          input.value = "";
+        }
+      });
+
+      socket.on("chat_message", (data) => {
+        if (data.user !== username) {
+          appendMessage(data, false); // Only append if it's from another user
+        }
+      });
+
+      function appendMessage(data, isSelf) {
+        const item = document.createElement("li");
+        item.classList.add("message-container", isSelf ? "self" : "incoming");
+
+        const bubble = document.createElement("div");
+        bubble.classList.add("message-bubble");
+        bubble.textContent = `${data.user}: ${data.message}`;
+
+        item.appendChild(bubble);
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      socket.on("user_connected", (username) => {
+        appendSystemMessage(username + " has joined the chat.", "green");
+      });
+
+      socket.on("user_disconnected", (username) => {
+        appendSystemMessage(username + " was disconnected.", "red");
+      });
+
+      function appendSystemMessage(text, color) {
+        const item = document.createElement("li");
+        item.textContent = text;
+        item.style.color = color;
+        item.style.fontStyle = "italic";
+        messages.appendChild(item);
+        messages.scrollTop = messages.scrollHeight;
+      }
     </script>
   </body>
 </html>
